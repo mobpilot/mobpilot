@@ -1,0 +1,80 @@
+version: v1.3.0
+
+selfservice:
+  default_browser_return_url: http://localhost:3000/
+  allowed_return_urls:
+    - http://localhost:3000
+    - http://localhost:4000
+
+  methods:
+    password:
+      enabled: true
+    code:
+      enabled: true
+
+  flows:
+    registration:
+      ui_url: http://localhost:3000/registration
+      lifespan: 10m
+      after:
+        password:
+          hooks:
+            - hook: session
+    login:
+      ui_url: http://localhost:3000/login
+      lifespan: 10m
+    logout:
+      after:
+        default_browser_return_url: http://localhost:3000/login
+    recovery:
+      enabled: true
+      ui_url: http://localhost:3000/recovery
+    verification:
+      enabled: true
+      ui_url: http://localhost:3000/verification
+      use: code
+
+session:
+  lifespan: 720h
+
+identity:
+  default_schema_id: person
+  schemas:
+    - id: person
+      url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  smtp:
+    from_address: noreply@driftbase.dev
+    from_name: Driftbase
+
+log:
+  level: warning
+  format: json
+
+secrets:
+  cookie:
+    - PLEASE-CHANGE-ME-I-AM-DEV-SECRET-1
+  cipher:
+    - 32-LONG-SECRET-NOT-SECURE-FOR-PROD
+
+hashers:
+  argon2:
+    parallelism: 1
+    memory: 128MB
+    iterations: 2
+    salt_length: 16
+    key_length: 16
+
+serve:
+  public:
+    base_url: http://localhost:4433/
+    port: 4433
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+        - http://localhost:4000
+  admin:
+    base_url: http://kratos:4434/
+    port: 4434

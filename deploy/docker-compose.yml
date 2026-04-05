@@ -1,0 +1,260 @@
+name: driftbase
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Profiles:
+#   infra     – postgres, redis, minio, nats, meilisearch, ory stack, traefik
+#   services  – all Driftbase application services
+#   all       – everything (infra + services)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:18-alpine
+    profiles: [infra, all]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-driftbase}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-driftbase_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-driftbase}
+    volumes:
+      - ./.data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-driftbase}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    profiles: [infra, all]
+    restart: unless-stopped
+    command: redis-server --save 60 1
+    volumes:
+      - ./.data/redis:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nats:
+    image: nats:2.10-alpine
+    profiles: [infra, all]
+    restart: unless-stopped
+    command: -js -m 8222 -n driftbase-dev
+    volumes:
+      - ./.data/nats:/data
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8222/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    profiles: [infra, all]
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-driftbase}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-driftbase_dev_secret}
+    volumes:
+      - ./.data/minio:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    profiles: [infra, all]
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-driftbase_search_dev}
+      MEILI_ENV: development
+    volumes:
+      - ./.data/meilisearch:/meili_data
+    ports:
+      - "7700:7700"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Ory Stack ────────────────────────────────────────────────────────────────
+
+  hydra-migrate:
+    image: oryd/hydra:v2.2.0
+    profiles: [infra, all]
+    command: migrate sql -e --yes
+    environment:
+      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=hydra
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  hydra:
+    image: oryd/hydra:v2.2.0
+    profiles: [infra, all]
+    restart: unless-stopped
+    command: serve all --dev
+    environment:
+      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=hydra
+      SECRETS_SYSTEM: ${HYDRA_SECRETS_SYSTEM:-youReallyNeedToChangeThis32charSecret}
+      URLS_SELF_ISSUER: ${HYDRA_PUBLIC_URL:-http://localhost:4444}
+      URLS_CONSENT: ${HYDRA_CONSENT_URL:-http://localhost:3000/consent}
+      URLS_LOGIN: ${HYDRA_LOGIN_URL:-http://localhost:3000/login}
+      URLS_LOGOUT: ${HYDRA_LOGOUT_URL:-http://localhost:3000/logout}
+      SERVE_PUBLIC_PORT: "4444"
+      SERVE_ADMIN_PORT: "4445"
+      SERVE_COOKIES_SAME_SITE_MODE: Lax
+      LOG_LEVEL: warning
+    ports:
+      - "4444:4444"
+      - "4445:4445"
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4445/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  kratos-migrate:
+    image: oryd/kratos:v1.3.0
+    profiles: [infra, all]
+    command: migrate sql -e --yes
+    environment:
+      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=kratos
+    volumes:
+      - ./config/kratos:/etc/config/kratos
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  kratos:
+    image: oryd/kratos:v1.3.0
+    profiles: [infra, all]
+    restart: unless-stopped
+    command: serve -c /etc/config/kratos/kratos.yaml --dev --watch-courier
+    environment:
+      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=kratos
+      COURIER_SMTP_CONNECTION_URI: ${SMTP_URI:-smtp://mailhog:1025/?skip_ssl_verify=true}
+    volumes:
+      - ./config/kratos:/etc/config/kratos
+    ports:
+      - "4433:4433"
+      - "4434:4434"
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4434/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  keto-migrate:
+    image: oryd/keto:v0.13.0-alpha.0
+    profiles: [infra, all]
+    command: migrate up -y
+    environment:
+      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=keto
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  keto:
+    image: oryd/keto:v0.13.0-alpha.0
+    profiles: [infra, all]
+    restart: unless-stopped
+    command: serve -c /etc/config/keto/keto.yaml
+    environment:
+      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=keto
+    volumes:
+      - ./config/keto:/etc/config/keto
+    ports:
+      - "4466:4466"
+      - "4467:4467"
+    depends_on:
+      keto-migrate:
+        condition: service_completed_successfully
+
+  # ── Dev helpers ───────────────────────────────────────────────────────────────
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    profiles: [infra, all]
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  # ── Application services ──────────────────────────────────────────────────────
+
+  identity:
+    build:
+      context: ..
+      dockerfile: services/identity/Dockerfile
+    profiles: [services, all]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable
+      NATS_URL: nats://nats:4222
+      HYDRA_ADMIN_URL: http://hydra:4445
+      LISTEN_ADDR: ":8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.identity.rule=PathPrefix(`/v1/identity`)"
+      - "traefik.http.services.identity.loadbalancer.server.port=8080"
+
+  # ── Gateway ───────────────────────────────────────────────────────────────────
+
+  traefik:
+    image: traefik:v3.2
+    profiles: [infra, all]
+    restart: unless-stopped
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --log.level=WARNING
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+networks:
+  default:
+    name: driftbase_dev

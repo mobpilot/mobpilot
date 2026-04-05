@@ -1,0 +1,294 @@
+openapi: "3.1.0"
+info:
+  title: Driftbase Identity API
+  version: "1.0.0"
+  description: |
+    User profiles, universal account, device token registration, and artifact storage.
+
+servers:
+  - url: http://localhost/v1/identity
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+paths:
+  /me:
+    get:
+      operationId: getMe
+      summary: Get current user profile
+      description: Returns the authenticated user's profile for the current app. Auto-creates the profile on first call.
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    patch:
+      operationId: updateMe
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /users/{userID}:
+    get:
+      operationId: getUser
+      summary: Get a public user profile
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices:
+    post:
+      operationId: registerDevice
+      summary: Register a push notification device token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+      responses:
+        "201":
+          description: Token registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+
+  /devices/{deviceID}:
+    delete:
+      operationId: unregisterDevice
+      summary: Unregister a device token
+      parameters:
+        - name: deviceID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Token removed
+
+  /me/artifacts:
+    get:
+      operationId: listArtifacts
+      summary: List all artifacts for the current user
+      responses:
+        "200":
+          description: Artifact list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Artifact"
+
+  /me/artifacts/{key}:
+    put:
+      operationId: putArtifact
+      summary: Create or replace an artifact
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+      responses:
+        "200":
+          description: Artifact upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+
+    get:
+      operationId: getArtifact
+      summary: Get an artifact by key
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Artifact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      operationId: deleteArtifact
+      summary: Delete an artifact
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        app_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        website_url:
+          type: string
+        settings:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+        bio:
+          type: string
+          maxLength: 500
+        location:
+          type: string
+        website_url:
+          type: string
+          format: uri
+
+    RegisterDeviceRequest:
+      type: object
+      required: [platform, token_type, token, device_id]
+      properties:
+        platform:
+          type: string
+          enum: [ios, android, web]
+        token_type:
+          type: string
+          enum: [fcm, apns]
+        token:
+          type: string
+        device_id:
+          type: string
+
+    Artifact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        value: {}
+        updated_at:
+          type: string
+          format: date-time
+
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    UnprocessableEntity:
+      description: Validation error
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"

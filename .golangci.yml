@@ -1,0 +1,33 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - contextcheck
+    - exhaustive
+    - godot
+    - noctx
+    - nolintlint
+    - revive
+    - wrapcheck
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+      - name: var-naming
+      - name: error-strings
+  wrapcheck:
+    ignorePackageGlobs:
+      - "github.com/knobo/driftbase/services/*/domain"
+
+issues:
+  exclude-dirs:
+    - gen/
+    - services/*/infrastructure/postgres/sqlc

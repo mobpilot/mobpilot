@@ -1,0 +1,21 @@
+version: v0.13.0-alpha.0
+
+serve:
+  read:
+    port: 4466
+  write:
+    port: 4467
+
+namespaces:
+  - id: 0
+    name: Organization
+  - id: 1
+    name: App
+  - id: 2
+    name: Post
+  - id: 3
+    name: Group
+
+log:
+  level: warning
+  format: json

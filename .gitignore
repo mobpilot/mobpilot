@@ -1,0 +1,44 @@
+# Binaries
+bin/
+*.exe
+
+# Go
+*.test
+vendor/
+
+# Environment
+.env
+deploy/.env
+*.local
+
+# Generated code
+gen/
+services/*/infrastructure/postgres/sqlc/*.gen.go
+admin/src/gen/
+
+# Build artifacts
+dist/
+admin/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Atlas
+*.sum.hcl
+
+# Secrets / credentials
+*.pem
+*.p8
+*.p12
+*.key
+firebase-adminsdk-*.json
+
+# Docker volumes (local dev)
+.data/
