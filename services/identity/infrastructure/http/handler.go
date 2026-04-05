@@ -8,9 +8,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	appports "github.com/knobo/driftbase/services/identity/application/ports"
-	"github.com/knobo/driftbase/services/identity/domain"
-	"github.com/knobo/driftbase/internal/platform/httpmw"
+	appports "github.com/mobpilot/mobpilot/services/identity/application/ports"
+	"github.com/mobpilot/mobpilot/services/identity/domain"
+	"github.com/mobpilot/mobpilot/internal/platform/httpmw"
 )
 
 // Handler wires the identity HTTP API.
@@ -346,17 +346,17 @@ func writeError(w http.ResponseWriter, err error) {
 func problemType(status int) string {
 	switch status {
 	case http.StatusNotFound:
-		return "urn:driftbase:identity:not-found"
+		return "urn:mobpilot:identity:not-found"
 	case http.StatusUnauthorized:
-		return "urn:driftbase:auth:unauthorized"
+		return "urn:mobpilot:auth:unauthorized"
 	case http.StatusForbidden:
-		return "urn:driftbase:auth:forbidden"
+		return "urn:mobpilot:auth:forbidden"
 	case http.StatusConflict:
-		return "urn:driftbase:identity:conflict"
+		return "urn:mobpilot:identity:conflict"
 	case http.StatusUnprocessableEntity:
-		return "urn:driftbase:identity:invalid-input"
+		return "urn:mobpilot:identity:invalid-input"
 	default:
-		return "urn:driftbase:internal-error"
+		return "urn:mobpilot:internal-error"
 	}
 }
 

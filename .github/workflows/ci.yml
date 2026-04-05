@@ -66,9 +66,9 @@ jobs:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_USER: driftbase_test
-          POSTGRES_PASSWORD: driftbase_test
-          POSTGRES_DB: driftbase_test
+          POSTGRES_USER: mobpilot_test
+          POSTGRES_PASSWORD: mobpilot_test
+          POSTGRES_DB: mobpilot_test
         ports:
           - 5432:5432
         options: >-
@@ -103,7 +103,7 @@ jobs:
       - name: Run integration tests
         run: go test -race -count=1 -tags integration ./...
         env:
-          POSTGRES_DSN: postgres://driftbase_test:driftbase_test@localhost:5432/driftbase_test?sslmode=disable
+          POSTGRES_DSN: postgres://mobpilot_test:mobpilot_test@localhost:5432/mobpilot_test?sslmode=disable
           REDIS_URL: redis://localhost:6379
 
   build:

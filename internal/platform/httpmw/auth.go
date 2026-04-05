@@ -42,7 +42,7 @@ type introspectResponse struct {
 	Subject   string `json:"sub"`
 	Scope     string `json:"scope"`
 	Ext       struct {
-		AppID string `json:"driftbase_app_id"`
+		AppID string `json:"mobpilot_app_id"`
 	} `json:"ext"`
 }
 
@@ -149,7 +149,7 @@ func writeProblem(w http.ResponseWriter, status int, detail string) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"type":   "urn:driftbase:auth:unauthorized",
+		"type":   "urn:mobpilot:auth:unauthorized",
 		"title":  http.StatusText(status),
 		"status": status,
 		"detail": detail,

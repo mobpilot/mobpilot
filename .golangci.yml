@@ -25,7 +25,7 @@ linters-settings:
       - name: error-strings
   wrapcheck:
     ignorePackageGlobs:
-      - "github.com/knobo/driftbase/services/*/domain"
+      - "github.com/mobpilot/mobpilot/services/*/domain"
 
 issues:
   exclude-dirs:

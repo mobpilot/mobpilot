@@ -1,8 +1,8 @@
-# Driftbase — Claude Code Context
+# Mobpilot — Claude Code Context
 
 ## Project overview
 
-Driftbase is an open-source universal mobile app backend platform. It provides social media features, multi-tenant app management, push notifications, and AI-driven configuration via an MCP server. Users can self-host with Docker Compose or Kubernetes, or use the managed cloud offering.
+Mobpilot is an open-source universal mobile app backend platform. It provides social media features, multi-tenant app management, push notifications, and AI-driven configuration via an MCP server. Users can self-host with Docker Compose or Kubernetes, or use the managed cloud offering.
 
 ## Architecture
 
@@ -70,7 +70,7 @@ make generate-ogen     # after editing api/openapi/*.yaml
 
 ## Multi-tenancy
 
-Every DB table has `app_id UUID NOT NULL`. Every authenticated request carries `driftbase_app_id` as a JWT custom claim (injected by Hydra claims hook). All repository queries must include `WHERE app_id = $<n>`.
+Every DB table has `app_id UUID NOT NULL`. Every authenticated request carries `mobpilot_app_id` as a JWT custom claim (injected by Hydra claims hook). All repository queries must include `WHERE app_id = $<n>`.
 
 ## Commit style
 

@@ -1,9 +1,9 @@
-name: driftbase
+name: mobpilot
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Profiles:
 #   infra     – postgres, redis, minio, nats, meilisearch, ory stack, traefik
-#   services  – all Driftbase application services
+#   services  – all Mobpilot application services
 #   all       – everything (infra + services)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -16,15 +16,15 @@ services:
     profiles: [infra, all]
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-driftbase}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-driftbase_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-driftbase}
+      POSTGRES_USER: ${POSTGRES_USER:-mobpilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mobpilot_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-mobpilot}
     volumes:
       - ./.data/postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-driftbase}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mobpilot}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -48,7 +48,7 @@ services:
     image: nats:2.10-alpine
     profiles: [infra, all]
     restart: unless-stopped
-    command: -js -m 8222 -n driftbase-dev
+    command: -js -m 8222 -n mobpilot-dev
     volumes:
       - ./.data/nats:/data
     ports:
@@ -66,8 +66,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-driftbase}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-driftbase_dev_secret}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mobpilot}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-mobpilot_dev_secret}
     volumes:
       - ./.data/minio:/data
     ports:
@@ -84,7 +84,7 @@ services:
     profiles: [infra, all]
     restart: unless-stopped
     environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-driftbase_search_dev}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-mobpilot_search_dev}
       MEILI_ENV: development
     volumes:
       - ./.data/meilisearch:/meili_data
@@ -103,7 +103,7 @@ services:
     profiles: [infra, all]
     command: migrate sql -e --yes
     environment:
-      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=hydra
+      DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable&search_path=hydra
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,7 +115,7 @@ services:
     restart: unless-stopped
     command: serve all --dev
     environment:
-      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=hydra
+      DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable&search_path=hydra
       SECRETS_SYSTEM: ${HYDRA_SECRETS_SYSTEM:-youReallyNeedToChangeThis32charSecret}
       URLS_SELF_ISSUER: ${HYDRA_PUBLIC_URL:-http://localhost:4444}
       URLS_CONSENT: ${HYDRA_CONSENT_URL:-http://localhost:3000/consent}
@@ -142,7 +142,7 @@ services:
     profiles: [infra, all]
     command: migrate sql -e --yes
     environment:
-      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=kratos
+      DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable&search_path=kratos
     volumes:
       - ./config/kratos:/etc/config/kratos
     depends_on:
@@ -156,7 +156,7 @@ services:
     restart: unless-stopped
     command: serve -c /etc/config/kratos/kratos.yaml --dev --watch-courier
     environment:
-      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=kratos
+      DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable&search_path=kratos
       COURIER_SMTP_CONNECTION_URI: ${SMTP_URI:-smtp://mailhog:1025/?skip_ssl_verify=true}
     volumes:
       - ./config/kratos:/etc/config/kratos
@@ -177,7 +177,7 @@ services:
     profiles: [infra, all]
     command: migrate up -y
     environment:
-      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=keto
+      DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable&search_path=keto
     depends_on:
       postgres:
         condition: service_healthy
@@ -189,7 +189,7 @@ services:
     restart: unless-stopped
     command: serve -c /etc/config/keto/keto.yaml
     environment:
-      DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable&search_path=keto
+      DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable&search_path=keto
     volumes:
       - ./config/keto:/etc/config/keto
     ports:
@@ -218,7 +218,7 @@ services:
     profiles: [services, all]
     restart: unless-stopped
     environment:
-      POSTGRES_DSN: postgres://${POSTGRES_USER:-driftbase}:${POSTGRES_PASSWORD:-driftbase_dev}@postgres:5432/${POSTGRES_DB:-driftbase}?sslmode=disable
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable
       NATS_URL: nats://nats:4222
       HYDRA_ADMIN_URL: http://hydra:4445
       LISTEN_ADDR: ":8080"
@@ -257,4 +257,4 @@ services:
 
 networks:
   default:
-    name: driftbase_dev
+    name: mobpilot_dev

@@ -6,9 +6,9 @@ import (
 
 	"go.opentelemetry.io/otel"
 
-	appports "github.com/knobo/driftbase/services/identity/application/ports"
-	"github.com/knobo/driftbase/services/identity/domain"
-	domainports "github.com/knobo/driftbase/services/identity/domain/ports"
+	appports "github.com/mobpilot/mobpilot/services/identity/application/ports"
+	"github.com/mobpilot/mobpilot/services/identity/domain"
+	domainports "github.com/mobpilot/mobpilot/services/identity/domain/ports"
 )
 
 // DeviceService implements appports.DeviceTokenUseCase.

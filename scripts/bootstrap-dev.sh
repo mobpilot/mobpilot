@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bootstrap-dev.sh — One-command local Driftbase dev setup.
+# bootstrap-dev.sh — One-command local Mobpilot dev setup.
 # Usage: ./scripts/bootstrap-dev.sh
 set -euo pipefail
 
@@ -9,9 +9,9 @@ DEPLOY_DIR="$ROOT_DIR/deploy"
 
 # ── Colours ────────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
-info()  { echo -e "${GREEN}[driftbase]${NC} $*"; }
-warn()  { echo -e "${YELLOW}[driftbase]${NC} $*"; }
-error() { echo -e "${RED}[driftbase]${NC} $*" >&2; }
+info()  { echo -e "${GREEN}[mobpilot]${NC} $*"; }
+warn()  { echo -e "${YELLOW}[mobpilot]${NC} $*"; }
+error() { echo -e "${RED}[mobpilot]${NC} $*" >&2; }
 
 # ── Prereq checks ──────────────────────────────────────────────────────────────
 for cmd in docker curl jq; do
@@ -36,7 +36,7 @@ docker compose --profile infra up -d
 # ── Wait for PostgreSQL ────────────────────────────────────────────────────────
 info "Waiting for PostgreSQL 18 to be ready ..."
 for i in $(seq 1 30); do
-  if docker compose exec -T postgres pg_isready -U driftbase &>/dev/null; then
+  if docker compose exec -T postgres pg_isready -U mobpilot &>/dev/null; then
     break
   fi
   if [[ $i -eq 30 ]]; then
@@ -76,46 +76,46 @@ done
 info "Kratos ready."
 
 # ── Create MinIO bucket ────────────────────────────────────────────────────────
-info "Creating MinIO bucket 'driftbase-media' ..."
+info "Creating MinIO bucket 'mobpilot-media' ..."
 docker compose exec -T minio \
-  mc alias set local http://localhost:9000 driftbase driftbase_dev_secret 2>/dev/null || true
+  mc alias set local http://localhost:9000 mobpilot mobpilot_dev_secret 2>/dev/null || true
 docker compose exec -T minio \
-  mc mb --ignore-existing local/driftbase-media 2>/dev/null || true
+  mc mb --ignore-existing local/mobpilot-media 2>/dev/null || true
 info "MinIO bucket ready."
 
 # ── Bootstrap Hydra OAuth2 clients ────────────────────────────────────────────
 info "Bootstrapping Hydra OAuth2 clients ..."
 
 # Admin/MCP client (machine-to-machine, client credentials)
-if ! curl -sf http://localhost:4445/admin/clients/driftbase-admin &>/dev/null; then
+if ! curl -sf http://localhost:4445/admin/clients/mobpilot-admin &>/dev/null; then
   curl -sf -X POST http://localhost:4445/admin/clients \
     -H "Content-Type: application/json" \
     -d '{
-      "client_id": "driftbase-admin",
-      "client_name": "Driftbase Admin / MCP",
-      "client_secret": "driftbase-admin-dev-secret",
+      "client_id": "mobpilot-admin",
+      "client_name": "Mobpilot Admin / MCP",
+      "client_secret": "mobpilot-admin-dev-secret",
       "grant_types": ["client_credentials"],
-      "scope": "driftbase:admin driftbase:apps:write driftbase:org:write",
+      "scope": "mobpilot:admin mobpilot:apps:write mobpilot:org:write",
       "token_endpoint_auth_method": "client_secret_post"
     }' | jq .client_id
-  info "Created Hydra client: driftbase-admin"
+  info "Created Hydra client: mobpilot-admin"
 fi
 
 # Dev app client (PKCE flow for mobile)
-if ! curl -sf http://localhost:4445/admin/clients/driftbase-dev-app &>/dev/null; then
+if ! curl -sf http://localhost:4445/admin/clients/mobpilot-dev-app &>/dev/null; then
   curl -sf -X POST http://localhost:4445/admin/clients \
     -H "Content-Type: application/json" \
     -d '{
-      "client_id": "driftbase-dev-app",
-      "client_name": "Driftbase Dev App",
-      "redirect_uris": ["http://localhost:3000/callback", "driftbasedev://callback"],
+      "client_id": "mobpilot-dev-app",
+      "client_name": "Mobpilot Dev App",
+      "redirect_uris": ["http://localhost:3000/callback", "mobpilotdev://callback"],
       "grant_types": ["authorization_code", "refresh_token"],
       "response_types": ["code"],
-      "scope": "openid profile offline_access driftbase:social driftbase:media",
+      "scope": "openid profile offline_access mobpilot:social mobpilot:media",
       "token_endpoint_auth_method": "none",
-      "metadata": {"driftbase_app_id": "00000000-0000-0000-0000-000000000001"}
+      "metadata": {"mobpilot_app_id": "00000000-0000-0000-0000-000000000001"}
     }' | jq .client_id
-  info "Created Hydra client: driftbase-dev-app"
+  info "Created Hydra client: mobpilot-dev-app"
 fi
 
 info "Hydra clients configured."
@@ -128,7 +128,7 @@ if command -v atlas &>/dev/null; then
     if [[ -d "migrations/$svc" ]]; then
       atlas migrate apply \
         --dir "file://migrations/$svc" \
-        --url "postgres://driftbase:driftbase_dev@localhost:5432/driftbase?sslmode=disable&search_path=$svc" \
+        --url "postgres://mobpilot:mobpilot_dev@localhost:5432/mobpilot?sslmode=disable&search_path=$svc" \
         2>/dev/null || warn "Migrations for $svc may already be applied."
       info "Migrations applied: $svc"
     fi
@@ -140,7 +140,7 @@ fi
 # ── Done ───────────────────────────────────────────────────────────────────────
 echo ""
 info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-info "Driftbase local stack is ready!"
+info "Mobpilot local stack is ready!"
 info ""
 info "  Hydra (public)     http://localhost:4444"
 info "  Hydra (admin)      http://localhost:4445"

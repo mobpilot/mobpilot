@@ -1,11 +1,11 @@
-# Driftbase Roadmap
+# Mobpilot Roadmap
 
 ## Current status: Phase 1 complete
 
 Phase 1 foundation is built and committed. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full tech stack and design decisions.
 
 **What exists today:**
-- Go monorepo with module `github.com/knobo/driftbase`
+- Go monorepo with module `github.com/mobpilot/mobpilot`
 - `internal/platform/` — shared postgres pool, OTel, HTTP middleware
 - `services/identity/` — full hexagonal implementation (profiles, device tokens, artifact storage)
 - `deploy/docker-compose.yml` — PostgreSQL 18, Redis, NATS, MinIO, Meilisearch, Hydra, Kratos, Keto, Traefik
@@ -16,8 +16,8 @@ Phase 1 foundation is built and committed. See [ARCHITECTURE.md](ARCHITECTURE.md
 
 **To start developing:**
 ```bash
-git clone https://github.com/knobo/driftbase
-cd driftbase
+git clone https://github.com/mobpilot/mobpilot
+cd mobpilot
 cp deploy/.env.example deploy/.env
 ./scripts/bootstrap-dev.sh
 docker compose -f deploy/docker-compose.yml --profile all up --build
@@ -88,7 +88,7 @@ roles(id, org_id, name, permissions TEXT[], created_at)
 
 **Hydra integration:**
 - When `CreateApp` is called, the use case calls `HydraAdminClient` (outbound port) to `POST /admin/clients`
-- The new client gets `metadata.driftbase_app_id` set so the claims hook enriches tokens
+- The new client gets `metadata.mobpilot_app_id` set so the claims hook enriches tokens
 - Hydra client ID convention: `app-{slug}`
 
 **Infrastructure:**
@@ -124,22 +124,22 @@ type Checker interface {
 **Integration points:**
 - `org` service writes tuples on member join/leave
 - `appstore` service writes tuples on app creation
-- `identity` service HTTP handler checks `driftbase:read` on app for `GET /users/{id}`
+- `identity` service HTTP handler checks `mobpilot:read` on app for `GET /users/{id}`
 
 ---
 
-### Issue #4: Hydra claims hook — enrich tokens with `driftbase_app_id`
+### Issue #4: Hydra claims hook — enrich tokens with `mobpilot_app_id`
 
 Hydra supports a token hook that calls an external HTTP endpoint to add custom claims.
 
 **Implementation:**
 - Add `services/auth/` with a minimal Go HTTP server (no hexagonal needed — pure infrastructure)
 - Implements Hydra's token hook interface: `POST /token-hook`
-- Receives `{ client_id, subject, requested_scope }`, looks up the app by `client_id` → `appstore` service, returns `{ extra: { driftbase_app_id: "..." } }`
+- Receives `{ client_id, subject, requested_scope }`, looks up the app by `client_id` → `appstore` service, returns `{ extra: { mobpilot_app_id: "..." } }`
 - Configure Hydra via env: `OAUTH2_TOKEN_HOOK_URL=http://auth:8090/token-hook`
 - Add `auth` service to `deploy/docker-compose.yml`
 
-**Note:** For the dev Hydra client `driftbase-dev-app`, the `metadata.driftbase_app_id` is set directly at client creation (see `bootstrap-dev.sh`), so the hook is only strictly needed when apps are dynamically provisioned.
+**Note:** For the dev Hydra client `mobpilot-dev-app`, the `metadata.mobpilot_app_id` is set directly at client creation (see `bootstrap-dev.sh`), so the hook is only strictly needed when apps are dynamically provisioned.
 
 ---
 
@@ -151,7 +151,7 @@ Implement the MCP server with Phase 2 tools: `create_app`, `list_apps`, `create_
 
 **Tech:** Use `github.com/mark3labs/mcp-go` or implement the MCP protocol directly (it's a simple JSON-RPC 2.0 over HTTP/SSE).
 
-**Architecture:** The MCP server is a thin infrastructure layer — no domain, no application layer. It authenticates the caller (Hydra Bearer token, scope `driftbase:admin`), then calls the internal services via Connect-RPC clients.
+**Architecture:** The MCP server is a thin infrastructure layer — no domain, no application layer. It authenticates the caller (Hydra Bearer token, scope `mobpilot:admin`), then calls the internal services via Connect-RPC clients.
 
 **Tools for Phase 2:**
 ```json
@@ -178,7 +178,7 @@ services/mcp/
 ```bash
 claude mcp add --transport http http://localhost:9000/mcp
 # or for self-hosted cloud:
-claude mcp add --transport http https://your-driftbase.com/mcp
+claude mcp add --transport http https://your-mobpilot.com/mcp
 ```
 
 ---
@@ -215,7 +215,7 @@ Write an integration test (tag: `//go:build integration`) that:
 2. Creates an organization
 3. Creates an app (verifies Hydra client created + DB schema provisioned)
 4. Calls `GET /v1/identity/me` with an app-scoped token
-5. Verifies `driftbase_app_id` claim is present and scoped correctly
+5. Verifies `mobpilot_app_id` claim is present and scoped correctly
 
 File: `tests/integration/phase2_test.go`
 
@@ -246,7 +246,7 @@ GET    /v1/social/users/{id}/following
 ### Issue #10: Feed fan-out worker
 
 `services/social/infrastructure/redis/feed_cache.go` — Redis sorted set operations for feed fan-out.
-When a post is created (NATS event `driftbase.events.social.post.created`), a River job fans out to all followers' Redis feed keys.
+When a post is created (NATS event `mobpilot.events.social.post.created`), a River job fans out to all followers' Redis feed keys.
 
 ### Issue #11: `services/media` — File upload + transcoding
 
@@ -272,7 +272,7 @@ Test: create post with media → follow user → see post in feed → react → 
 
 ### Issue #15: `services/notification` — Unified push worker
 
-**NATS consumer:** subscribes to `driftbase.events.social.*`, `driftbase.events.org.*`
+**NATS consumer:** subscribes to `mobpilot.events.social.*`, `mobpilot.events.org.*`
 **FCM:** `firebase.google.com/go/v4/messaging`
 **APNs:** `github.com/sideshow/apns2`
 **Per-app credentials:** loaded from Kubernetes Secrets (self-hosted) or AWS Secrets Manager (cloud), referenced by `apps.push_config.fcm.service_account_secret_ref`
@@ -386,13 +386,13 @@ All services use distroless images from GHCR.
 
 ### Issue #29: Go SDK
 
-`sdk/go/` — typed client for the Driftbase REST API + Connect-RPC client.
-Published as `github.com/knobo/driftbase-go`.
+`sdk/go/` — typed client for the Mobpilot REST API + Connect-RPC client.
+Published as `github.com/mobpilot/mobpilot-go`.
 
 ### Issue #30: TypeScript SDK
 
 `sdk/typescript/` — typed fetch client generated from OpenAPI specs.
-Covers identity, social, media endpoints. Published to npm as `@driftbase/sdk`.
+Covers identity, social, media endpoints. Published to npm as `@mobpilot/sdk`.
 
 ### Issue #31: Example apps
 

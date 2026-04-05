@@ -7,8 +7,8 @@ import (
 
 	"github.com/nats-io/nats.go/jetstream"
 
-	"github.com/knobo/driftbase/services/identity/domain"
-	domainports "github.com/knobo/driftbase/services/identity/domain/ports"
+	"github.com/mobpilot/mobpilot/services/identity/domain"
+	domainports "github.com/mobpilot/mobpilot/services/identity/domain/ports"
 )
 
 // EventPublisher publishes domain events to NATS JetStream.
@@ -32,7 +32,7 @@ func (p *EventPublisher) Publish(ctx context.Context, events []domain.DomainEven
 		if err != nil {
 			return fmt.Errorf("nats.EventPublisher marshal %s: %w", e.EventType(), err)
 		}
-		subject := "driftbase.events." + e.EventType()
+		subject := "mobpilot.events." + e.EventType()
 		if _, err := p.js.Publish(ctx, subject, payload); err != nil {
 			return fmt.Errorf("nats.EventPublisher publish %s: %w", subject, err)
 		}

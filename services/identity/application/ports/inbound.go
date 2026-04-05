@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/knobo/driftbase/services/identity/domain"
+	"github.com/mobpilot/mobpilot/services/identity/domain"
 )
 
 // UserUseCase is the inbound port for user profile operations.
@@ -43,7 +43,7 @@ type ArtifactUseCase interface {
 
 type GetMeCommand struct {
 	UserID uuid.UUID // from JWT sub
-	AppID  uuid.UUID // from JWT driftbase_app_id
+	AppID  uuid.UUID // from JWT mobpilot_app_id
 }
 
 type UpdateMeCommand struct {

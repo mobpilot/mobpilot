@@ -1,7 +1,7 @@
 .PHONY: dev down generate lint test build help
 
 SERVICES := identity social media notification org appstore mcp bff webhook
-MODULE   := github.com/driftbase/driftbase
+MODULE   := github.com/mobpilot/mobpilot
 
 # ─── Development ────────────────────────────────────────────────────────────
 

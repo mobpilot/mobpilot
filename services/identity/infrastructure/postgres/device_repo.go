@@ -9,9 +9,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/knobo/driftbase/services/identity/domain"
-	domainports "github.com/knobo/driftbase/services/identity/domain/ports"
-	sqlcidentity "github.com/knobo/driftbase/services/identity/infrastructure/postgres/sqlc"
+	"github.com/mobpilot/mobpilot/services/identity/domain"
+	domainports "github.com/mobpilot/mobpilot/services/identity/domain/ports"
+	sqlcidentity "github.com/mobpilot/mobpilot/services/identity/infrastructure/postgres/sqlc"
 )
 
 // DeviceRepo is the PostgreSQL adapter implementing domain/ports.DeviceTokenRepository.

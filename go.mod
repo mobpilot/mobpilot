@@ -1,4 +1,4 @@
-module github.com/knobo/driftbase
+module github.com/mobpilot/mobpilot
 
 go 1.23
 

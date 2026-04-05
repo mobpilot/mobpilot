@@ -1,6 +1,6 @@
 openapi: "3.1.0"
 info:
-  title: Driftbase Identity API
+  title: Mobpilot Identity API
   version: "1.0.0"
   description: |
     User profiles, universal account, device token registration, and artifact storage.

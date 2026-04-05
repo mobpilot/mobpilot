@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# create-github-issues.sh — Creates all Driftbase roadmap issues on GitHub.
+# create-github-issues.sh — Creates all Mobpilot roadmap issues on GitHub.
 #
 # Usage:
 #   ./scripts/create-github-issues.sh owner/repo
@@ -13,7 +13,7 @@ set -euo pipefail
 REPO="${1:-}"
 if [[ -z "$REPO" ]]; then
   echo "Usage: $0 <owner/repo>"
-  echo "Example: $0 driftbase/driftbase"
+  echo "Example: $0 mobpilot/mobpilot"
   exit 1
 fi
 
@@ -143,7 +143,7 @@ Implement \`services/appstore/\` — app registry with tenant provisioning.
 ## Hydra integration
 When \`CreateApp\` is called:
 1. Calls Hydra admin API (\`POST /admin/clients\`) to register new OAuth2 client
-2. Sets \`metadata.driftbase_app_id\` on the client so claims hook enriches tokens
+2. Sets \`metadata.mobpilot_app_id\` on the client so claims hook enriches tokens
 3. Client ID convention: \`app-{slug}\`
 
 See [ROADMAP.md](../ROADMAP.md) Issue #2 for full details.
@@ -184,14 +184,14 @@ EOF
   "Phase 2: Orgs + RBAC + App Creation"
 
 create_issue \
-  "feat(auth): Hydra token hook — inject driftbase_app_id claim" \
+  "feat(auth): Hydra token hook — inject mobpilot_app_id claim" \
   "$(cat <<'EOF'
 Add \`services/auth/\` — a minimal HTTP server implementing Hydra's token hook.
 
 **Endpoint:** \`POST /token-hook\`
 - Receives \`{ client_id, subject, requested_scope }\`
 - Looks up app by \`client_id\` via appstore service
-- Returns \`{ extra: { driftbase_app_id: "..." } }\`
+- Returns \`{ extra: { mobpilot_app_id: "..." } }\`
 
 **Config:** Set \`OAUTH2_TOKEN_HOOK_URL=http://auth:8090/token-hook\` in Hydra env.
 
@@ -222,7 +222,7 @@ Implement \`services/mcp/\` — the Model Context Protocol server.
 | \`get_platform_status\` | health checks on all services |
 
 ## Architecture
-Thin infrastructure-only layer — no domain, no application. Authenticates via Hydra (scope: \`driftbase:admin\`), then calls services via Connect-RPC clients.
+Thin infrastructure-only layer — no domain, no application. Authenticates via Hydra (scope: \`mobpilot:admin\`), then calls services via Connect-RPC clients.
 
 ## Claude Code usage
 \`\`\`bash
@@ -279,7 +279,7 @@ Integration test (tag: \`//go:build integration\`) covering the full Phase 2 flo
 2. Create organization
 3. Create app (verify Hydra client created + DB schema provisioned)
 4. Get app-scoped Hydra token
-5. Call \`GET /v1/identity/me\` — verify \`driftbase_app_id\` claim present
+5. Call \`GET /v1/identity/me\` — verify \`mobpilot_app_id\` claim present
 
 File: \`tests/integration/phase2_test.go\`
 
@@ -425,14 +425,14 @@ create_issue \
 info "Creating Phase 7 issues ..."
 
 create_issue \
-  "feat(sdk): Go SDK — typed client for Driftbase API" \
-  "sdk/go/ — published as github.com/knobo/driftbase-go. See ROADMAP.md Issue #29." \
+  "feat(sdk): Go SDK — typed client for Mobpilot API" \
+  "sdk/go/ — published as github.com/mobpilot/mobpilot-go. See ROADMAP.md Issue #29." \
   "phase-7,backend" \
   "Phase 7: Open Source Launch"
 
 create_issue \
   "feat(sdk): TypeScript SDK — generated from OpenAPI specs" \
-  "sdk/typescript/ — published to npm as @driftbase/sdk. See ROADMAP.md Issue #30." \
+  "sdk/typescript/ — published to npm as @mobpilot/sdk. See ROADMAP.md Issue #30." \
   "phase-7,frontend" \
   "Phase 7: Open Source Launch"
 

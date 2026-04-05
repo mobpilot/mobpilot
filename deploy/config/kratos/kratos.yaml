@@ -45,8 +45,8 @@ identity:
 
 courier:
   smtp:
-    from_address: noreply@driftbase.dev
-    from_name: Driftbase
+    from_address: noreply@mobpilot.dev
+    from_name: Mobpilot
 
 log:
   level: warning

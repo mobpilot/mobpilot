@@ -14,13 +14,13 @@ import (
 	"github.com/nats-io/nats.go"
 	natsjs "github.com/nats-io/nats.go/jetstream"
 
-	"github.com/knobo/driftbase/internal/platform/httpmw"
-	platformotel "github.com/knobo/driftbase/internal/platform/otel"
-	platformpg "github.com/knobo/driftbase/internal/platform/postgres"
-	"github.com/knobo/driftbase/services/identity/application"
-	identityhttp "github.com/knobo/driftbase/services/identity/infrastructure/http"
-	identitynats "github.com/knobo/driftbase/services/identity/infrastructure/nats"
-	identitypg "github.com/knobo/driftbase/services/identity/infrastructure/postgres"
+	"github.com/mobpilot/mobpilot/internal/platform/httpmw"
+	platformotel "github.com/mobpilot/mobpilot/internal/platform/otel"
+	platformpg "github.com/mobpilot/mobpilot/internal/platform/postgres"
+	"github.com/mobpilot/mobpilot/services/identity/application"
+	identityhttp "github.com/mobpilot/mobpilot/services/identity/infrastructure/http"
+	identitynats "github.com/mobpilot/mobpilot/services/identity/infrastructure/nats"
+	identitypg "github.com/mobpilot/mobpilot/services/identity/infrastructure/postgres"
 )
 
 func main() {

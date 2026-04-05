@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/knobo/driftbase/services/identity/domain"
+	"github.com/mobpilot/mobpilot/services/identity/domain"
 )
 
 // UserRepository is the outbound persistence port for User aggregates.

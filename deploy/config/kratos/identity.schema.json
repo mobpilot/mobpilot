@@ -1,5 +1,5 @@
 {
-  "$id": "https://driftbase.dev/schemas/person.json",
+  "$id": "https://mobpilot.dev/schemas/person.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Person",
   "type": "object",
