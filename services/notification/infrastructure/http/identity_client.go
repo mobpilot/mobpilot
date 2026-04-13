@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/mobpilot/mobpilot/services/notification/domain"
 	domainports "github.com/mobpilot/mobpilot/services/notification/domain/ports"
@@ -24,7 +25,7 @@ func NewIdentityClient(baseURL, apiKey string) *IdentityClient {
 	return &IdentityClient{
 		baseURL: baseURL,
 		apiKey:  apiKey,
-		client:  &http.Client{},
+		client:  &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
