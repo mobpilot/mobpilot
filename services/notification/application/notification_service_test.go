@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -20,12 +21,15 @@ import (
 // ─── Stubs ────────────────────────────────────────────────────────────────────
 
 type stubNotificationRepo struct {
+	mu       sync.Mutex
 	saved    []*domain.Notification
 	findByID map[uuid.UUID]*domain.Notification
 	marked   []uuid.UUID
 }
 
 func (r *stubNotificationRepo) Save(_ context.Context, n *domain.Notification) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.saved = append(r.saved, n)
 	if r.findByID == nil {
 		r.findByID = map[uuid.UUID]*domain.Notification{}
@@ -35,6 +39,8 @@ func (r *stubNotificationRepo) Save(_ context.Context, n *domain.Notification) e
 }
 
 func (r *stubNotificationRepo) FindByID(_ context.Context, id uuid.UUID) (*domain.Notification, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if n, ok := r.findByID[id]; ok {
 		return n, nil
 	}
@@ -42,6 +48,8 @@ func (r *stubNotificationRepo) FindByID(_ context.Context, id uuid.UUID) (*domai
 }
 
 func (r *stubNotificationRepo) ListForUser(_ context.Context, _, _ uuid.UUID, _, _ int) ([]*domain.Notification, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	return r.saved, nil
 }
 
@@ -50,6 +58,8 @@ func (r *stubNotificationRepo) UpdateStatus(_ context.Context, _ uuid.UUID, _ do
 }
 
 func (r *stubNotificationRepo) MarkRead(_ context.Context, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.marked = append(r.marked, id)
 	return nil
 }
