@@ -58,7 +58,7 @@ func main() {
 		logger.Error("nats connect failed", "err", err)
 		os.Exit(1)
 	}
-	defer nc.Drain()
+	defer func() { _ = nc.Drain() }()
 
 	js, err := natsjs.New(nc)
 	if err != nil {

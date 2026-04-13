@@ -76,7 +76,7 @@ type RoleRepository interface {
 
 // EventPublisher publishes domain events (e.g. to NATS JetStream).
 type EventPublisher interface {
-	Publish(ctx context.Context, events []domain.DomainEvent) error
+	Publish(ctx context.Context, events []domain.Event) error
 }
 
 // AuthzPort is the outbound port for authorization (Ory Keto ReBAC).

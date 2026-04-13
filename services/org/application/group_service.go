@@ -63,14 +63,14 @@ func (s *GroupService) CreateGroup(ctx context.Context, cmd appports.CreateGroup
 		}
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.GroupCreatedEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.GroupCreatedEvent{
 		GroupID:     group.ID,
 		OrgID:       group.OrgID,
 		AppID:       group.AppID,
 		CreatedBy:   group.CreatedBy,
 		Ephemeral:   group.Ephemeral,
 		ExpiresAt:   group.ExpiresAt,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	return group, nil
@@ -97,12 +97,12 @@ func (s *GroupService) AddGroupMember(ctx context.Context, cmd appports.AddGroup
 		}
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.MemberAddedToGroupEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.MemberAddedToGroupEvent{
 		GroupID:     cmd.GroupID,
 		OrgID:       group.OrgID,
 		AppID:       cmd.AppID,
 		UserID:      cmd.UserID,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	return nil
@@ -128,12 +128,12 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, cmd appports.Remov
 		}
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.MemberRemovedFromGroupEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.MemberRemovedFromGroupEvent{
 		GroupID:     cmd.GroupID,
 		OrgID:       group.OrgID,
 		AppID:       group.AppID,
 		UserID:      cmd.UserID,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	return nil

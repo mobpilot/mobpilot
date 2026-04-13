@@ -98,9 +98,12 @@ func InsertOutboxEvent(ctx context.Context, q *sqlcorg.Queries, aggregateID uuid
 	if err != nil {
 		return fmt.Errorf("InsertOutboxEvent marshal: %w", err)
 	}
-	return q.InsertOutboxEvent(ctx, sqlcorg.InsertOutboxEventParams{
+	if err := q.InsertOutboxEvent(ctx, sqlcorg.InsertOutboxEventParams{
 		AggregateID: aggregateID,
 		EventType:   eventType,
 		Payload:     payload,
-	})
+	}); err != nil {
+		return fmt.Errorf("InsertOutboxEvent persist: %w", err)
+	}
+	return nil
 }

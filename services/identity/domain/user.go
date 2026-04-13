@@ -20,7 +20,7 @@ type User struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
-	events []DomainEvent
+	events []Event
 }
 
 // NewUser creates a User aggregate and raises UserCreated.
@@ -75,12 +75,12 @@ type ProfilePatch struct {
 
 // PopEvents drains accumulated domain events. Called by the application layer
 // after successfully persisting the aggregate.
-func (u *User) PopEvents() []DomainEvent {
+func (u *User) PopEvents() []Event {
 	evts := u.events
 	u.events = nil
 	return evts
 }
 
-func (u *User) raise(e DomainEvent) {
+func (u *User) raise(e Event) {
 	u.events = append(u.events, e)
 }

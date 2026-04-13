@@ -38,6 +38,7 @@ jobs:
         with:
           lint: true
           breaking: false
+          pr_comment: false
 
       # Breaking check is skipped gracefully when main has no proto baseline
       # (first PR introducing protos). Once merged, this will catch real breaks.
@@ -57,7 +58,7 @@ jobs:
 
       - uses: sqlc-dev/setup-sqlc@v4
         with:
-          sqlc-version: "1.28.0"
+          sqlc-version: "1.30.0"
 
       - name: Check sqlc output is up to date
         run: |

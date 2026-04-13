@@ -99,10 +99,10 @@ func (m *mockMemberRepo) ListByOrg(ctx context.Context, orgID uuid.UUID) ([]*dom
 }
 
 type mockPublisher struct {
-	published []domain.DomainEvent
+	published []domain.Event
 }
 
-func (m *mockPublisher) Publish(ctx context.Context, events []domain.DomainEvent) error {
+func (m *mockPublisher) Publish(ctx context.Context, events []domain.Event) error {
 	m.published = append(m.published, events...)
 	return nil
 }
