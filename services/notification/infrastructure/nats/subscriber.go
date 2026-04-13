@@ -3,6 +3,7 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -138,7 +139,7 @@ func (s *Subscriber) handleMemberAdded(ctx context.Context, env envelope) error 
 	}
 
 	if _, err := s.notification.SendToUser(ctx, cmd); err != nil {
-		return err
+		return fmt.Errorf("subscriber.handleMemberAdded: %w", err)
 	}
 	return nil
 }
@@ -169,5 +170,8 @@ func (s *Subscriber) handleGroupDeleted(ctx context.Context, env envelope) error
 		Data:      map[string]any{"group_id": data.GroupID},
 	}
 
-	return s.notification.SendToGroup(ctx, cmd)
+	if err := s.notification.SendToGroup(ctx, cmd); err != nil {
+		return fmt.Errorf("subscriber.handleGroupDeleted: %w", err)
+	}
+	return nil
 }

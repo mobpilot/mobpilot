@@ -77,11 +77,11 @@ func (s *GroupExpirySweeper) deleteGroup(ctx context.Context, g *domain.Group) {
 		return
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.GroupDeletedEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.GroupDeletedEvent{
 		GroupID:     g.ID,
 		OrgID:       g.OrgID,
 		AppID:       g.AppID,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	s.logger.InfoContext(ctx, "expired group deleted", "group_id", g.ID, "org_id", g.OrgID)

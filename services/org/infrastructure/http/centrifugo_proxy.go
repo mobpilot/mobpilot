@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -69,7 +70,11 @@ func (h *centrifugoProxyHandler) checkSubscription(r *http.Request, req centrifu
 	switch {
 	case strings.HasPrefix(channel, "group:"):
 		groupID := strings.TrimPrefix(channel, "group:")
-		return h.authz.Check(r.Context(), userID, "member", "Group:"+groupID)
+		allowed, err := h.authz.Check(r.Context(), userID, "member", "Group:"+groupID)
+		if err != nil {
+			return false, fmt.Errorf("centrifugo proxy: authz check: %w", err)
+		}
+		return allowed, nil
 
 	case strings.HasPrefix(channel, "user:"):
 		// User personal channel: only the user themselves can subscribe.

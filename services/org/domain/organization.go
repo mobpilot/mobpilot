@@ -17,7 +17,7 @@ type Organization struct {
 	UpdatedAt   time.Time
 	SuspendedAt *time.Time
 
-	events []DomainEvent
+	events []Event
 }
 
 // NewOrganization creates an Organization aggregate and raises OrgCreatedEvent.
@@ -45,7 +45,7 @@ func NewOrganization(name, slug string, ownerUserID uuid.UUID) (*Organization, e
 		OrgID:       org.ID,
 		OwnerUserID: ownerUserID,
 		Slug:        slug,
-		OccurredAt_: now,
+		At: now,
 	})
 	return org, nil
 }
@@ -67,12 +67,12 @@ func (o *Organization) Update(patch OrgPatch) {
 }
 
 // PopEvents drains accumulated domain events.
-func (o *Organization) PopEvents() []DomainEvent {
+func (o *Organization) PopEvents() []Event {
 	evts := o.events
 	o.events = nil
 	return evts
 }
 
-func (o *Organization) raise(e DomainEvent) {
+func (o *Organization) raise(e Event) {
 	o.events = append(o.events, e)
 }
