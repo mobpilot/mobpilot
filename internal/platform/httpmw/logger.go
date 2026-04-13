@@ -18,9 +18,9 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
-	n, err := rw.ResponseWriter.Write(b) //nolint:wrapcheck // pass-through; caller owns the connection
+	n, err := rw.ResponseWriter.Write(b)
 	rw.bytes += n
-	return n, err
+	return n, err //nolint:wrapcheck // pass-through; caller owns the connection
 }
 
 // Logger is an HTTP middleware that logs each request with structured fields.
