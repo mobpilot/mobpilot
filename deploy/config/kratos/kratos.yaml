@@ -56,7 +56,7 @@ secrets:
   cookie:
     - PLEASE-CHANGE-ME-I-AM-DEV-SECRET-1
   cipher:
-    - 32-LONG-SECRET-NOT-SECURE-FOR-PROD
+    - 32-LONG-SECRET-NOT-SECURE-PROD!!
 
 hashers:
   argon2:

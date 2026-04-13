@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/mobpilot/mobpilot/gen/go/identity/v1;identityv1";
+
+service IdentityService {
+  // GetUser returns a user profile by ID within an app.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // GetDeviceTokens returns all push tokens for a user within an app.
+  rpc GetDeviceTokens(GetDeviceTokensRequest) returns (GetDeviceTokensResponse);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+  string app_id = 2;
+}
+
+message GetUserResponse {
+  UserProfile user = 1;
+}
+
+message UserProfile {
+  string id = 1;
+  string app_id = 2;
+  string display_name = 3;
+  string avatar_url = 4;
+  string bio = 5;
+  string location = 6;
+  string website_url = 7;
+}
+
+message GetDeviceTokensRequest {
+  string user_id = 1;
+  string app_id = 2;
+}
+
+message GetDeviceTokensResponse {
+  repeated DeviceToken tokens = 1;
+}
+
+message DeviceToken {
+  string id = 1;
+  string user_id = 2;
+  string platform = 3;
+  string token_type = 4;
+  string token = 5;
+  string device_id = 6;
+}

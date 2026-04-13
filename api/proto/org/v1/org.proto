@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package org.v1;
+
+option go_package = "github.com/mobpilot/mobpilot/gen/go/org/v1;orgv1";
+
+service OrgService {
+  // GetOrg returns an organization by ID.
+  rpc GetOrg(GetOrgRequest) returns (GetOrgResponse);
+  // IsMember checks if a user is a member of an organization.
+  rpc IsMember(IsMemberRequest) returns (IsMemberResponse);
+  // GetMemberRole returns the role of a user in an organization.
+  rpc GetMemberRole(GetMemberRoleRequest) returns (GetMemberRoleResponse);
+}
+
+message GetOrgRequest {
+  string org_id = 1;
+}
+
+message GetOrgResponse {
+  Organization org = 1;
+}
+
+message Organization {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string owner_user_id = 4;
+  string plan = 5;
+}
+
+message IsMemberRequest {
+  string org_id = 1;
+  string user_id = 2;
+}
+
+message IsMemberResponse {
+  bool is_member = 1;
+}
+
+message GetMemberRoleRequest {
+  string org_id = 1;
+  string user_id = 2;
+}
+
+message GetMemberRoleResponse {
+  string role = 1;
+}

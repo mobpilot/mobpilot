@@ -25,6 +25,8 @@ type DeviceTokenUseCase interface {
 	RegisterDevice(ctx context.Context, cmd RegisterDeviceCommand) (*domain.DeviceToken, error)
 	// UnregisterDevice removes a device token.
 	UnregisterDevice(ctx context.Context, cmd UnregisterDeviceCommand) error
+	// FindDevicesByUser returns all device tokens for a user (internal/service-to-service use).
+	FindDevicesByUser(ctx context.Context, userID, appID uuid.UUID) ([]*domain.DeviceToken, error)
 }
 
 // ArtifactUseCase is the inbound port for artifact (key/value) storage.

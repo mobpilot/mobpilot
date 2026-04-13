@@ -40,7 +40,7 @@ func NewUser(kratosID, appID uuid.UUID, displayName string) (*User, error) {
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
-	u.raise(UserCreatedEvent{UserID: u.ID, AppID: u.AppID, OccurredAt: now})
+	u.raise(UserCreatedEvent{UserID: u.ID, AppID: u.AppID, EventTimeAt: now})
 	return u, nil
 }
 

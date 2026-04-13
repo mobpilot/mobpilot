@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package appstore.v1;
+
+option go_package = "github.com/mobpilot/mobpilot/gen/go/appstore/v1;appstorev1";
+
+service AppstoreService {
+  // GetApp returns an app by ID.
+  rpc GetApp(GetAppRequest) returns (GetAppResponse);
+  // GetAppByClientID returns an app by its OAuth2 client ID.
+  rpc GetAppByClientID(GetAppByClientIDRequest) returns (GetAppByClientIDResponse);
+}
+
+message GetAppRequest {
+  string app_id = 1;
+}
+
+message GetAppResponse {
+  App app = 1;
+}
+
+message App {
+  string id = 1;
+  string org_id = 2;
+  string name = 3;
+  string slug = 4;
+  string description = 5;
+  repeated string enabled_features = 6;
+  string status = 7;
+}
+
+message GetAppByClientIDRequest {
+  string client_id = 1;
+}
+
+message GetAppByClientIDResponse {
+  App app = 1;
+}

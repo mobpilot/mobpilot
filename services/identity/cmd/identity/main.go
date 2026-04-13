@@ -74,6 +74,9 @@ func main() {
 
 	// ── HTTP router ───────────────────────────────────────────────────────────
 	hydraAdminURL := requireEnv("HYDRA_ADMIN_URL")
+	internalAPIKey := os.Getenv("INTERNAL_API_KEY")
+
+	h := identityhttp.NewHandler(userSvc, deviceSvc, artifactSvc)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -87,13 +90,28 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	h := identityhttp.NewHandler(userSvc, deviceSvc, artifactSvc)
 	h.Mount(r)
 
+	// Internal routes (no Hydra auth — verified by X-Internal-Api-Key).
+	internal := chi.NewRouter()
+	internal.Use(middleware.RequestID)
+	internal.Use(httpmw.Logger(logger))
+	internal.Use(middleware.Recoverer)
+	h.MountInternal(internal, internalAPIKey)
+
 	addr := envOr("LISTEN_ADDR", ":8080")
+	internalAddr := envOr("INTERNAL_LISTEN_ADDR", ":8084")
+
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	internalSrv := &http.Server{
+		Addr:         internalAddr,
+		Handler:      internal,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -106,6 +124,12 @@ func main() {
 			stop()
 		}
 	}()
+	go func() {
+		logger.Info("identity internal service listening", "addr", internalAddr)
+		if err := internalSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("internal server error", "err", err)
+		}
+	}()
 
 	<-ctx.Done()
 	logger.Info("shutting down")
@@ -113,6 +137,7 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
+	_ = internalSrv.Shutdown(shutdownCtx)
 }
 
 func requireEnv(key string) string {

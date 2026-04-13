@@ -32,7 +32,8 @@ func ClaimsFromContext(ctx context.Context) *Claims {
 	return c
 }
 
-func withClaims(ctx context.Context, c *Claims) context.Context {
+// WithClaims injects claims into a context. Exported for testing.
+func WithClaims(ctx context.Context, c *Claims) context.Context {
 	return context.WithValue(ctx, ctxKeySubject, c)
 }
 
@@ -102,7 +103,7 @@ func BearerAuth(hydraAdminURL string) func(http.Handler) http.Handler {
 				tokenCache.set(token, claims, 30*time.Second)
 			}
 
-			next.ServeHTTP(w, r.WithContext(withClaims(r.Context(), claims)))
+			next.ServeHTTP(w, r.WithContext(WithClaims(r.Context(), claims)))
 		})
 	}
 }

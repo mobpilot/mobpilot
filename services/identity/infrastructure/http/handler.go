@@ -39,6 +39,42 @@ func (h *Handler) Mount(r chi.Router) {
 	r.Delete("/v1/identity/me/artifacts/{key}", h.deleteArtifact)
 }
 
+// MountInternal registers server-to-server routes (no Hydra auth, verified by
+// X-Internal-Api-Key header by the caller; deploy behind a private network).
+func (h *Handler) MountInternal(r chi.Router, internalAPIKey string) {
+	r.Get("/internal/users/{userID}/device-tokens", func(w http.ResponseWriter, r *http.Request) {
+		if internalAPIKey != "" && r.Header.Get("X-Internal-Api-Key") != internalAPIKey {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		userID, err := uuid.Parse(chi.URLParam(r, "userID"))
+		if err != nil {
+			writeProblem(w, http.StatusBadRequest, "invalid userID")
+			return
+		}
+		appIDStr := r.URL.Query().Get("app_id")
+		appID, err := uuid.Parse(appIDStr)
+		if err != nil {
+			writeProblem(w, http.StatusBadRequest, "invalid app_id")
+			return
+		}
+		tokens, err := h.devices.FindDevicesByUser(r.Context(), userID, appID)
+		if err != nil {
+			writeProblem(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		items := make([]map[string]string, len(tokens))
+		for i, dt := range tokens {
+			items[i] = map[string]string{
+				"token_type": string(dt.TokenType),
+				"token":      dt.Token,
+				"platform":   string(dt.Platform),
+			}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	})
+}
+
 // ─── User profile ─────────────────────────────────────────────────────────────
 
 func (h *Handler) getMe(w http.ResponseWriter, r *http.Request) {

@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 
+	"github.com/google/uuid"
 	appports "github.com/mobpilot/mobpilot/services/identity/application/ports"
 	"github.com/mobpilot/mobpilot/services/identity/domain"
 	domainports "github.com/mobpilot/mobpilot/services/identity/domain/ports"
@@ -48,4 +49,15 @@ func (s *DeviceService) UnregisterDevice(ctx context.Context, cmd appports.Unreg
 		return fmt.Errorf("DeviceService.UnregisterDevice: %w", err)
 	}
 	return nil
+}
+
+func (s *DeviceService) FindDevicesByUser(ctx context.Context, userID, appID uuid.UUID) ([]*domain.DeviceToken, error) {
+	ctx, span := otel.Tracer("identity").Start(ctx, "DeviceService.FindDevicesByUser")
+	defer span.End()
+
+	tokens, err := s.devices.FindByUser(ctx, userID, appID)
+	if err != nil {
+		return nil, fmt.Errorf("DeviceService.FindDevicesByUser: %w", err)
+	}
+	return tokens, nil
 }

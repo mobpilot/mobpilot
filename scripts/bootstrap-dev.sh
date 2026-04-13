@@ -124,7 +124,7 @@ info "Hydra clients configured."
 info "Applying database migrations ..."
 cd "$ROOT_DIR"
 if command -v atlas &>/dev/null; then
-  for svc in identity; do
+  for svc in identity org appstore notification; do
     if [[ -d "migrations/$svc" ]]; then
       atlas migrate apply \
         --dir "file://migrations/$svc" \
@@ -150,6 +150,13 @@ info "  Keto (read)        http://localhost:4466"
 info "  MinIO console      http://localhost:9001"
 info "  MailHog            http://localhost:8025"
 info "  NATS monitor       http://localhost:8222"
+info "  Centrifugo admin   http://localhost:8002"
+info "  Traefik dashboard  http://localhost:8080"
+info ""
+info "  Application services (after infra is up):"
+info "    identity service   http://localhost:8090"
+info "    org service        http://localhost:8091"
+info "    notification svc   http://localhost:8093"
 info ""
 info "  To start application services:"
 info "    docker compose --profile services up --build"

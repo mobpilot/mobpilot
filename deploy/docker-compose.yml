@@ -21,6 +21,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-mobpilot}
     volumes:
       - ./.data/postgres:/var/lib/postgresql/data
+      - ./config/postgres/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -124,7 +125,7 @@ services:
       SERVE_PUBLIC_PORT: "4444"
       SERVE_ADMIN_PORT: "4445"
       SERVE_COOKIES_SAME_SITE_MODE: Lax
-      LOG_LEVEL: warning
+      LOG_LEVEL: warn
     ports:
       - "4444:4444"
       - "4445:4445"
@@ -173,18 +174,20 @@ services:
       retries: 15
 
   keto-migrate:
-    image: oryd/keto:v0.13.0-alpha.0
+    image: oryd/keto:v0.12.0
     profiles: [infra, all]
-    command: migrate up -y
+    command: migrate up -y -c /etc/config/keto/keto.yaml
     environment:
       DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable&search_path=keto
+    volumes:
+      - ./config/keto:/etc/config/keto
     depends_on:
       postgres:
         condition: service_healthy
     restart: on-failure
 
   keto:
-    image: oryd/keto:v0.13.0-alpha.0
+    image: oryd/keto:v0.12.0
     profiles: [infra, all]
     restart: unless-stopped
     command: serve -c /etc/config/keto/keto.yaml
@@ -209,6 +212,37 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  # ── Real-time hub ─────────────────────────────────────────────────────────────
+
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    profiles: [infra, all]
+    restart: unless-stopped
+    command: centrifugo --config=/etc/centrifugo/config.json
+    environment:
+      CENTRIFUGO_TOKEN_SECRET: ${CENTRIFUGO_TOKEN_SECRET:-changeme_centrifugo_token_secret}
+      CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:-changeme_centrifugo_api_key}
+      CENTRIFUGO_ADMIN_PASSWORD: ${CENTRIFUGO_ADMIN_PASSWORD:-changeme_centrifugo_admin}
+      CENTRIFUGO_ADMIN_SECRET: ${CENTRIFUGO_ADMIN_SECRET:-changeme_centrifugo_admin_secret}
+      CENTRIFUGO_PROXY_SECRET: ${CENTRIFUGO_PROXY_SECRET:-changeme_centrifugo_proxy_secret}
+    volumes:
+      - ./config/centrifugo/config.json:/etc/centrifugo/config.json
+    ports:
+      - "8001:8000"   # WebSocket/SSE client port (via Traefik: /connection)
+      - "8002:8080"   # Admin UI + HTTP API port
+    depends_on:
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.centrifugo.rule=PathPrefix(`/connection`)"
+      - "traefik.http.services.centrifugo.loadbalancer.server.port=8000"
+
   # ── Application services ──────────────────────────────────────────────────────
 
   identity:
@@ -217,11 +251,16 @@ services:
       dockerfile: services/identity/Dockerfile
     profiles: [services, all]
     restart: unless-stopped
+    ports:
+      - "8090:8080"
+      - "8094:8084"   # Internal API (device token lookup for notification service)
     environment:
       POSTGRES_DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable
       NATS_URL: nats://nats:4222
       HYDRA_ADMIN_URL: http://hydra:4445
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-changeme_internal_api_key}
       LISTEN_ADDR: ":8080"
+      INTERNAL_LISTEN_ADDR: ":8084"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       SERVICE_VERSION: ${SERVICE_VERSION:-dev}
     depends_on:
@@ -235,6 +274,76 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.identity.rule=PathPrefix(`/v1/identity`)"
       - "traefik.http.services.identity.loadbalancer.server.port=8080"
+
+  org:
+    build:
+      context: ..
+      dockerfile: services/org/Dockerfile
+    profiles: [services, all]
+    restart: unless-stopped
+    ports:
+      - "8091:8081"   # Public API (requires Bearer token)
+      - "8092:8082"   # Internal API (Centrifugo proxy)
+    environment:
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable
+      NATS_URL: nats://nats:4222
+      HYDRA_ADMIN_URL: http://hydra:4445
+      KETO_READ_URL: http://keto:4466
+      KETO_WRITE_URL: http://keto:4467
+      CENTRIFUGO_TOKEN_SECRET: ${CENTRIFUGO_TOKEN_SECRET:-changeme_centrifugo_token_secret}
+      CENTRIFUGO_PROXY_SECRET: ${CENTRIFUGO_PROXY_SECRET:-changeme_centrifugo_proxy_secret}
+      LISTEN_ADDR: ":8081"
+      INTERNAL_LISTEN_ADDR: ":8082"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+      keto:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.org.rule=PathPrefix(`/v1/org`)"
+      - "traefik.http.services.org.loadbalancer.server.port=8081"
+
+  notification:
+    build:
+      context: ..
+      dockerfile: services/notification/Dockerfile
+    profiles: [services, all]
+    restart: unless-stopped
+    ports:
+      - "8093:8083"
+    environment:
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-mobpilot}:${POSTGRES_PASSWORD:-mobpilot_dev}@postgres:5432/${POSTGRES_DB:-mobpilot}?sslmode=disable
+      NATS_URL: nats://nats:4222
+      HYDRA_ADMIN_URL: http://hydra:4445
+      ORG_SERVICE_URL: http://org:8081
+      IDENTITY_SERVICE_URL: http://identity:8084
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-changeme_internal_api_key}
+      CENTRIFUGO_API_URL: http://centrifugo:8080/api
+      CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:-changeme_centrifugo_api_key}
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_FROM: no-reply@mobpilot.dev
+      LISTEN_ADDR: ":8083"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notification.rule=PathPrefix(`/v1/notifications`)"
+      - "traefik.http.services.notification.loadbalancer.server.port=8083"
 
   # ── Gateway ───────────────────────────────────────────────────────────────────
 

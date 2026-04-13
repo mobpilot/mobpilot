@@ -14,10 +14,10 @@ type DomainEvent interface {
 
 // UserCreatedEvent is raised when a new user profile is persisted for the first time.
 type UserCreatedEvent struct {
-	UserID     uuid.UUID
-	AppID      uuid.UUID
-	OccurredAt time.Time
+	UserID      uuid.UUID
+	AppID       uuid.UUID
+	EventTimeAt time.Time
 }
 
 func (e UserCreatedEvent) EventType() string    { return "identity.user.created" }
-func (e UserCreatedEvent) OccurredAt() time.Time { return e.OccurredAt }
+func (e UserCreatedEvent) OccurredAt() time.Time { return e.EventTimeAt }
