@@ -34,6 +34,11 @@ func NewCentrifugoProxyHandler(authz domainports.AuthzPort, proxySecret string) 
 }
 
 func (h *centrifugoProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Guard against misconfiguration: an empty secret would accept any request.
+	if h.proxySecret == "" {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	// Verify server-to-server secret.
 	if r.Header.Get("X-Centrifugo-Proxy-Secret") != h.proxySecret {
 		w.WriteHeader(http.StatusUnauthorized)

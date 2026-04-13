@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -18,6 +19,7 @@ type OrgService struct {
 	orgs      domainports.OrgRepository
 	members   domainports.MemberRepository
 	publisher domainports.EventPublisher
+	logger    *slog.Logger
 }
 
 // Compile-time interface check.
@@ -27,8 +29,9 @@ func NewOrgService(
 	orgs domainports.OrgRepository,
 	members domainports.MemberRepository,
 	publisher domainports.EventPublisher,
+	logger *slog.Logger,
 ) *OrgService {
-	return &OrgService{orgs: orgs, members: members, publisher: publisher}
+	return &OrgService{orgs: orgs, members: members, publisher: publisher, logger: logger}
 }
 
 func (s *OrgService) CreateOrg(ctx context.Context, cmd appports.CreateOrgCommand) (*domain.Organization, error) {
@@ -60,7 +63,7 @@ func (s *OrgService) CreateOrg(ctx context.Context, cmd appports.CreateOrgComman
 	}
 
 	if err := s.publisher.Publish(ctx, org.PopEvents()); err != nil {
-		_ = err // Non-fatal: log but do not fail.
+		s.logger.WarnContext(ctx, "OrgService.CreateOrg: publish events failed", "err", err)
 	}
 	return org, nil
 }

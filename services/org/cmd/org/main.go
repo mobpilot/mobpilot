@@ -86,7 +86,7 @@ func main() {
 	queries        := sqlcorg.New(pool)
 
 	// ── Application services (use cases) ─────────────────────────────────────
-	orgSvc    := application.NewOrgService(orgRepo, memberRepo, publisher)
+	orgSvc    := application.NewOrgService(orgRepo, memberRepo, publisher, logger)
 	memberSvc := application.NewMemberService(memberRepo, invitationRepo, publisher)
 	roleSvc   := application.NewRoleService(roleRepo)
 

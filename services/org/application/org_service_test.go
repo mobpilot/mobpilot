@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/google/uuid"
@@ -113,7 +114,7 @@ func TestOrgService_CreateOrg(t *testing.T) {
 	orgRepo := newMockOrgRepo()
 	memberRepo := newMockMemberRepo()
 	publisher := &mockPublisher{}
-	svc := application.NewOrgService(orgRepo, memberRepo, publisher)
+	svc := application.NewOrgService(orgRepo, memberRepo, publisher, slog.Default())
 
 	ctx := context.Background()
 	ownerID := uuid.New()
@@ -146,7 +147,7 @@ func TestOrgService_CreateOrg_DuplicateSlug(t *testing.T) {
 	orgRepo := newMockOrgRepo()
 	memberRepo := newMockMemberRepo()
 	publisher := &mockPublisher{}
-	svc := application.NewOrgService(orgRepo, memberRepo, publisher)
+	svc := application.NewOrgService(orgRepo, memberRepo, publisher, slog.Default())
 
 	ctx := context.Background()
 	ownerID := uuid.New()
@@ -171,7 +172,7 @@ func TestOrgService_CreateOrg_ValidationErrors(t *testing.T) {
 	orgRepo := newMockOrgRepo()
 	memberRepo := newMockMemberRepo()
 	publisher := &mockPublisher{}
-	svc := application.NewOrgService(orgRepo, memberRepo, publisher)
+	svc := application.NewOrgService(orgRepo, memberRepo, publisher, slog.Default())
 
 	ctx := context.Background()
 
@@ -188,7 +189,7 @@ func TestOrgService_GetOrg(t *testing.T) {
 	orgRepo := newMockOrgRepo()
 	memberRepo := newMockMemberRepo()
 	publisher := &mockPublisher{}
-	svc := application.NewOrgService(orgRepo, memberRepo, publisher)
+	svc := application.NewOrgService(orgRepo, memberRepo, publisher, slog.Default())
 
 	ctx := context.Background()
 
@@ -209,7 +210,7 @@ func TestOrgService_GetOrg_NotFound(t *testing.T) {
 	orgRepo := newMockOrgRepo()
 	memberRepo := newMockMemberRepo()
 	publisher := &mockPublisher{}
-	svc := application.NewOrgService(orgRepo, memberRepo, publisher)
+	svc := application.NewOrgService(orgRepo, memberRepo, publisher, slog.Default())
 
 	_, err := svc.GetOrg(context.Background(), uuid.New())
 	require.Error(t, err)
