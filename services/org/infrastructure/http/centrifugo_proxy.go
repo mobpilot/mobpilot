@@ -1,6 +1,7 @@
 package http
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -39,8 +40,12 @@ func (h *centrifugoProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// Verify server-to-server secret.
-	if r.Header.Get("X-Centrifugo-Proxy-Secret") != h.proxySecret {
+	// Verify server-to-server secret using constant-time comparison to
+	// prevent timing attacks from measuring string comparison duration.
+	if subtle.ConstantTimeCompare(
+		[]byte(r.Header.Get("X-Centrifugo-Proxy-Secret")),
+		[]byte(h.proxySecret),
+	) != 1 {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
