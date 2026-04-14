@@ -35,13 +35,21 @@ func NewSubscriber(js natsjs.JetStream, notification appports.NotificationUseCas
 // Blocks until ctx is cancelled.
 func (s *Subscriber) Run(ctx context.Context) {
 	consumerCfg := natsjs.ConsumerConfig{
-		Name:           consumerName,
-		Durable:        consumerName,
-		FilterSubject:  filterSubject,
-		AckPolicy:      natsjs.AckExplicitPolicy,
-		MaxDeliver:     5,
-		AckWait:        30 * time.Second,
-		DeliverPolicy:  natsjs.DeliverNewPolicy,
+		Name:          consumerName,
+		Durable:       consumerName,
+		FilterSubject: filterSubject,
+		AckPolicy:     natsjs.AckExplicitPolicy,
+		MaxDeliver:    5,
+		AckWait:       30 * time.Second,
+		DeliverPolicy: natsjs.DeliverNewPolicy,
+		// Exponential backoff between redelivery attempts so a consistently
+		// failing handler doesn't immediately exhaust all 5 retries.
+		BackOff: []time.Duration{
+			5 * time.Second,
+			30 * time.Second,
+			2 * time.Minute,
+			5 * time.Minute,
+		},
 	}
 
 	consumer, err := s.js.CreateOrUpdateConsumer(ctx, streamName, consumerCfg)

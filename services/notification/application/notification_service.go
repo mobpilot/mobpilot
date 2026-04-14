@@ -158,7 +158,11 @@ func (s *NotificationService) deliverToUser(ctx context.Context, n *domain.Notif
 
 func (s *NotificationService) tryPush(ctx context.Context, n *domain.Notification, eventType string) {
 	enabled, err := s.preferences.IsEnabled(ctx, n.UserID, n.AppID, domain.ChannelPush, eventType)
-	if err != nil || !enabled {
+	if err != nil {
+		// Preference lookup failed — default to enabled so the user is not silently skipped.
+		s.logger.WarnContext(ctx, "push: preference lookup failed, defaulting to enabled",
+			"user_id", n.UserID, "err", err)
+	} else if !enabled {
 		return
 	}
 
@@ -193,8 +197,14 @@ func (s *NotificationService) tryPush(ctx context.Context, n *domain.Notificatio
 
 func (s *NotificationService) tryEmail(ctx context.Context, n *domain.Notification, eventType string) {
 	enabled, err := s.preferences.IsEnabled(ctx, n.UserID, n.AppID, domain.ChannelEmail, eventType)
-	if err != nil || !enabled {
-		return // email is opt-in; default is disabled
+	if err != nil {
+		// Email is opt-in: on lookup failure default to disabled (safe).
+		s.logger.WarnContext(ctx, "email: preference lookup failed, defaulting to disabled",
+			"user_id", n.UserID, "err", err)
+		return
+	}
+	if !enabled {
+		return
 	}
 
 	emailAddr, _ := n.Data["email"].(string)
