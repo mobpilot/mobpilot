@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -19,6 +20,7 @@ type GroupService struct {
 	publisher domainports.EventPublisher
 	authz     domainports.AuthzPort
 	tokens    TokenIssuer
+	logger    *slog.Logger
 }
 
 // TokenIssuer issues signed Centrifugo subscription JWTs.
@@ -34,12 +36,14 @@ func NewGroupService(
 	publisher domainports.EventPublisher,
 	authz domainports.AuthzPort,
 	tokens TokenIssuer,
+	logger *slog.Logger,
 ) *GroupService {
 	return &GroupService{
 		groups:    groups,
 		publisher: publisher,
 		authz:     authz,
 		tokens:    tokens,
+		logger:    logger,
 	}
 }
 
@@ -58,19 +62,19 @@ func (s *GroupService) CreateGroup(ctx context.Context, cmd appports.CreateGroup
 	// Write Keto admin relation for permanent groups only.
 	if !group.Ephemeral {
 		if err := s.authz.WriteRelation(ctx, cmd.CreatedBy.String(), "admin", "Group:"+group.ID.String()); err != nil {
-			// Best-effort: log but do not fail the operation.
-			_ = err
+			s.logger.WarnContext(ctx, "GroupService.CreateGroup: keto write admin relation failed",
+				"group_id", group.ID, "err", err)
 		}
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.GroupCreatedEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.GroupCreatedEvent{
 		GroupID:     group.ID,
 		OrgID:       group.OrgID,
 		AppID:       group.AppID,
 		CreatedBy:   group.CreatedBy,
 		Ephemeral:   group.Ephemeral,
 		ExpiresAt:   group.ExpiresAt,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	return group, nil
@@ -93,16 +97,17 @@ func (s *GroupService) AddGroupMember(ctx context.Context, cmd appports.AddGroup
 	// Write Keto member relation for permanent groups only.
 	if !group.Ephemeral {
 		if err := s.authz.WriteRelation(ctx, cmd.UserID.String(), "member", "Group:"+cmd.GroupID.String()); err != nil {
-			_ = err
+			s.logger.WarnContext(ctx, "GroupService.AddGroupMember: keto write member relation failed",
+				"group_id", cmd.GroupID, "user_id", cmd.UserID, "err", err)
 		}
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.MemberAddedToGroupEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.MemberAddedToGroupEvent{
 		GroupID:     cmd.GroupID,
 		OrgID:       group.OrgID,
 		AppID:       cmd.AppID,
 		UserID:      cmd.UserID,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	return nil
@@ -124,16 +129,17 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, cmd appports.Remov
 	// Delete Keto member relation for permanent groups only.
 	if !group.Ephemeral {
 		if err := s.authz.DeleteRelation(ctx, cmd.UserID.String(), "member", "Group:"+cmd.GroupID.String()); err != nil {
-			_ = err
+			s.logger.WarnContext(ctx, "GroupService.RemoveGroupMember: keto delete member relation failed",
+				"group_id", cmd.GroupID, "user_id", cmd.UserID, "err", err)
 		}
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.MemberRemovedFromGroupEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.MemberRemovedFromGroupEvent{
 		GroupID:     cmd.GroupID,
 		OrgID:       group.OrgID,
 		AppID:       group.AppID,
 		UserID:      cmd.UserID,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	return nil

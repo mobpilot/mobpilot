@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	domainports "github.com/mobpilot/mobpilot/services/notification/domain/ports"
 )
@@ -25,7 +26,7 @@ func NewCentrifugoAdapter(apiURL, apiKey string) *CentrifugoAdapter {
 	return &CentrifugoAdapter{
 		apiURL: apiURL,
 		apiKey: apiKey,
-		client: &http.Client{},
+		client: &http.Client{Timeout: 10 * time.Second},
 	}
 }
 

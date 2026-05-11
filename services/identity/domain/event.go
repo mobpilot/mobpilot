@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// DomainEvent is the marker interface for all events raised by aggregates.
-type DomainEvent interface {
+// Event is the marker interface for all events raised by aggregates.
+type Event interface {
 	EventType() string
 	OccurredAt() time.Time
 }

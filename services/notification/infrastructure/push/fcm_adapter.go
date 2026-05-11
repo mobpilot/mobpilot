@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	domainports "github.com/mobpilot/mobpilot/services/notification/domain/ports"
 )
@@ -29,7 +30,7 @@ func NewFCMAdapter(projectID string, tokenSource TokenSource) *FCMAdapter {
 	return &FCMAdapter{
 		projectID:   projectID,
 		tokenSource: tokenSource,
-		client:      &http.Client{},
+		client:      &http.Client{Timeout: 10 * time.Second},
 	}
 }
 

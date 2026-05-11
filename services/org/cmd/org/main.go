@@ -56,7 +56,7 @@ func main() {
 		logger.Error("nats connect failed", "err", err)
 		os.Exit(1)
 	}
-	defer nc.Drain()
+	defer func() { _ = nc.Drain() }()
 
 	js, err := natsjs.New(nc)
 	if err != nil {
@@ -86,7 +86,7 @@ func main() {
 	queries        := sqlcorg.New(pool)
 
 	// ── Application services (use cases) ─────────────────────────────────────
-	orgSvc    := application.NewOrgService(orgRepo, memberRepo, publisher)
+	orgSvc    := application.NewOrgService(orgRepo, memberRepo, publisher, logger)
 	memberSvc := application.NewMemberService(memberRepo, invitationRepo, publisher)
 	roleSvc   := application.NewRoleService(roleRepo)
 
@@ -102,7 +102,7 @@ func main() {
 	centrifugoProxySecret := os.Getenv("CENTRIFUGO_PROXY_SECRET")
 	proxyHandler := orghttp.NewCentrifugoProxyHandler(authzChecker, centrifugoProxySecret)
 
-	groupSvc := application.NewGroupService(groupRepo, publisher, authzChecker, groupTokenIssuer)
+	groupSvc := application.NewGroupService(groupRepo, publisher, authzChecker, groupTokenIssuer, logger)
 
 	// ── Background workers ────────────────────────────────────────────────────
 	outboxWorker := orgpg.NewOutboxWorker(queries, js, logger)
@@ -137,7 +137,8 @@ func main() {
 	internal.Use(middleware.RequestID)
 	internal.Use(httpmw.Logger(logger))
 	internal.Use(middleware.Recoverer)
-	h.MountInternal(internal)
+	internalAPIKey := os.Getenv("INTERNAL_API_KEY")
+	h.MountInternal(internal, internalAPIKey)
 
 	addr := envOr("LISTEN_ADDR", ":8081")
 	internalAddr := envOr("INTERNAL_LISTEN_ADDR", ":8082")

@@ -69,12 +69,12 @@ func (s *MemberService) InviteMember(ctx context.Context, cmd appports.InviteMem
 		return nil, fmt.Errorf("MemberService.InviteMember persist: %w", err)
 	}
 
-	events := []domain.DomainEvent{
+	events := []domain.Event{
 		domain.MemberInvitedEvent{
 			OrgID:       cmd.OrgID,
 			Email:       cmd.Email,
 			Role:        cmd.Role,
-			OccurredAt_: now,
+			At: now,
 		},
 	}
 	if err := s.publisher.Publish(ctx, events); err != nil {
@@ -113,12 +113,12 @@ func (s *MemberService) AcceptInvitation(ctx context.Context, cmd appports.Accep
 		return nil, fmt.Errorf("MemberService.AcceptInvitation mark accepted: %w", err)
 	}
 
-	events := []domain.DomainEvent{
+	events := []domain.Event{
 		domain.MemberJoinedEvent{
 			OrgID:       inv.OrgID,
 			UserID:      cmd.UserID,
 			Role:        inv.Role,
-			OccurredAt_: now,
+			At: now,
 		},
 	}
 	if err := s.publisher.Publish(ctx, events); err != nil {
@@ -151,7 +151,7 @@ func (s *MemberService) ListMembers(ctx context.Context, orgID uuid.UUID) ([]*do
 func generateToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		return "", err
+		return "", fmt.Errorf("generateToken: %w", err)
 	}
 	return hex.EncodeToString(b), nil
 }

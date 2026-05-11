@@ -119,7 +119,10 @@ func (s *NotificationService) SendToGroup(ctx context.Context, cmd appports.Send
 			return nil // non-fatal: don't abort the whole fan-out
 		})
 	}
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("NotificationService.SendToGroup: %w", err)
+	}
+	return nil
 }
 
 // MarkRead marks a notification as read by its owner.
@@ -131,12 +134,19 @@ func (s *NotificationService) MarkRead(ctx context.Context, cmd appports.MarkRea
 	if n.UserID != cmd.UserID {
 		return domain.ErrNotAuthorized
 	}
-	return s.notifications.MarkRead(ctx, cmd.NotificationID)
+	if err := s.notifications.MarkRead(ctx, cmd.NotificationID); err != nil {
+		return fmt.Errorf("NotificationService.MarkRead: %w", err)
+	}
+	return nil
 }
 
 // ListForUser returns paginated notifications for a user.
 func (s *NotificationService) ListForUser(ctx context.Context, userID, appID uuid.UUID, limit, offset int) ([]*domain.Notification, error) {
-	return s.notifications.ListForUser(ctx, userID, appID, limit, offset)
+	items, err := s.notifications.ListForUser(ctx, userID, appID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("NotificationService.ListForUser: %w", err)
+	}
+	return items, nil
 }
 
 // deliverToUser sends a notification via push and email based on preferences.
@@ -148,7 +158,11 @@ func (s *NotificationService) deliverToUser(ctx context.Context, n *domain.Notif
 
 func (s *NotificationService) tryPush(ctx context.Context, n *domain.Notification, eventType string) {
 	enabled, err := s.preferences.IsEnabled(ctx, n.UserID, n.AppID, domain.ChannelPush, eventType)
-	if err != nil || !enabled {
+	if err != nil {
+		// Preference lookup failed — default to enabled so the user is not silently skipped.
+		s.logger.WarnContext(ctx, "push: preference lookup failed, defaulting to enabled",
+			"user_id", n.UserID, "err", err)
+	} else if !enabled {
 		return
 	}
 
@@ -183,8 +197,14 @@ func (s *NotificationService) tryPush(ctx context.Context, n *domain.Notificatio
 
 func (s *NotificationService) tryEmail(ctx context.Context, n *domain.Notification, eventType string) {
 	enabled, err := s.preferences.IsEnabled(ctx, n.UserID, n.AppID, domain.ChannelEmail, eventType)
-	if err != nil || !enabled {
-		return // email is opt-in; default is disabled
+	if err != nil {
+		// Email is opt-in: on lookup failure default to disabled (safe).
+		s.logger.WarnContext(ctx, "email: preference lookup failed, defaulting to disabled",
+			"user_id", n.UserID, "err", err)
+		return
+	}
+	if !enabled {
+		return
 	}
 
 	emailAddr, _ := n.Data["email"].(string)

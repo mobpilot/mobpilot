@@ -3,6 +3,7 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -34,13 +35,21 @@ func NewSubscriber(js natsjs.JetStream, notification appports.NotificationUseCas
 // Blocks until ctx is cancelled.
 func (s *Subscriber) Run(ctx context.Context) {
 	consumerCfg := natsjs.ConsumerConfig{
-		Name:           consumerName,
-		Durable:        consumerName,
-		FilterSubject:  filterSubject,
-		AckPolicy:      natsjs.AckExplicitPolicy,
-		MaxDeliver:     5,
-		AckWait:        30 * time.Second,
-		DeliverPolicy:  natsjs.DeliverNewPolicy,
+		Name:          consumerName,
+		Durable:       consumerName,
+		FilterSubject: filterSubject,
+		AckPolicy:     natsjs.AckExplicitPolicy,
+		MaxDeliver:    5,
+		AckWait:       30 * time.Second,
+		DeliverPolicy: natsjs.DeliverNewPolicy,
+		// Exponential backoff between redelivery attempts so a consistently
+		// failing handler doesn't immediately exhaust all 5 retries.
+		BackOff: []time.Duration{
+			5 * time.Second,
+			30 * time.Second,
+			2 * time.Minute,
+			5 * time.Minute,
+		},
 	}
 
 	consumer, err := s.js.CreateOrUpdateConsumer(ctx, streamName, consumerCfg)
@@ -138,7 +147,7 @@ func (s *Subscriber) handleMemberAdded(ctx context.Context, env envelope) error 
 	}
 
 	if _, err := s.notification.SendToUser(ctx, cmd); err != nil {
-		return err
+		return fmt.Errorf("subscriber.handleMemberAdded: %w", err)
 	}
 	return nil
 }
@@ -169,5 +178,8 @@ func (s *Subscriber) handleGroupDeleted(ctx context.Context, env envelope) error
 		Data:      map[string]any{"group_id": data.GroupID},
 	}
 
-	return s.notification.SendToGroup(ctx, cmd)
+	if err := s.notification.SendToGroup(ctx, cmd); err != nil {
+		return fmt.Errorf("subscriber.handleGroupDeleted: %w", err)
+	}
+	return nil
 }
