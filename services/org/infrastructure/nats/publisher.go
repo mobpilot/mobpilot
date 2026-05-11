@@ -22,7 +22,7 @@ func NewEventPublisher(js jetstream.JetStream) *EventPublisher {
 	return &EventPublisher{js: js}
 }
 
-func (p *EventPublisher) Publish(ctx context.Context, events []domain.DomainEvent) error {
+func (p *EventPublisher) Publish(ctx context.Context, events []domain.Event) error {
 	for _, e := range events {
 		payload, err := json.Marshal(map[string]any{
 			"event_type":  e.EventType(),

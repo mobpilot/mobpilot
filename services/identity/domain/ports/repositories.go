@@ -42,5 +42,5 @@ type ArtifactRepository interface {
 // EventPublisher publishes domain events (e.g. to NATS JetStream).
 // Implementation lives in infrastructure/nats.
 type EventPublisher interface {
-	Publish(ctx context.Context, events []domain.DomainEvent) error
+	Publish(ctx context.Context, events []domain.Event) error
 }

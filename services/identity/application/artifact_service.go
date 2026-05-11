@@ -52,7 +52,11 @@ func (s *ArtifactService) List(ctx context.Context, userID, appID uuid.UUID) ([]
 	ctx, span := otel.Tracer("identity").Start(ctx, "ArtifactService.List")
 	defer span.End()
 
-	return s.artifacts.List(ctx, userID, appID)
+	items, err := s.artifacts.List(ctx, userID, appID)
+	if err != nil {
+		return nil, fmt.Errorf("ArtifactService.List: %w", err)
+	}
+	return items, nil
 }
 
 func (s *ArtifactService) Delete(ctx context.Context, cmd appports.DeleteArtifactCommand) error {

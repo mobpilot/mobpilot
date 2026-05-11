@@ -68,12 +68,27 @@ func (h *Handler) Mount(r chi.Router) {
 
 // MountInternal registers server-to-server routes that are NOT behind Hydra
 // Bearer auth. The Centrifugo subscribe proxy verifies a separate shared
-// secret header; group member lookup uses X-Internal-Api-Key.
-func (h *Handler) MountInternal(r chi.Router) {
+// secret header; group member lookup is protected by the X-Internal-Api-Key
+// header (same mechanism used by the identity service).
+func (h *Handler) MountInternal(r chi.Router, internalAPIKey string) {
 	if h.proxyHandler != nil {
 		r.Post("/internal/centrifugo/subscribe", h.proxyHandler.ServeHTTP)
 	}
-	r.Get("/internal/groups/{groupID}/members", h.internalListGroupMembers)
+	// Guard all other internal routes with the shared API key.
+	r.Group(func(r chi.Router) {
+		if internalAPIKey != "" {
+			r.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					if req.Header.Get("X-Internal-Api-Key") != internalAPIKey {
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					}
+					next.ServeHTTP(w, req)
+				})
+			})
+		}
+		r.Get("/internal/groups/{groupID}/members", h.internalListGroupMembers)
+	})
 }
 
 func (h *Handler) internalListGroupMembers(w http.ResponseWriter, r *http.Request) {

@@ -1,7 +1,9 @@
 package http
 
 import (
+	"crypto/subtle"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -33,8 +35,17 @@ func NewCentrifugoProxyHandler(authz domainports.AuthzPort, proxySecret string) 
 }
 
 func (h *centrifugoProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Verify server-to-server secret.
-	if r.Header.Get("X-Centrifugo-Proxy-Secret") != h.proxySecret {
+	// Guard against misconfiguration: an empty secret would accept any request.
+	if h.proxySecret == "" {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// Verify server-to-server secret using constant-time comparison to
+	// prevent timing attacks from measuring string comparison duration.
+	if subtle.ConstantTimeCompare(
+		[]byte(r.Header.Get("X-Centrifugo-Proxy-Secret")),
+		[]byte(h.proxySecret),
+	) != 1 {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -69,7 +80,11 @@ func (h *centrifugoProxyHandler) checkSubscription(r *http.Request, req centrifu
 	switch {
 	case strings.HasPrefix(channel, "group:"):
 		groupID := strings.TrimPrefix(channel, "group:")
-		return h.authz.Check(r.Context(), userID, "member", "Group:"+groupID)
+		allowed, err := h.authz.Check(r.Context(), userID, "member", "Group:"+groupID)
+		if err != nil {
+			return false, fmt.Errorf("centrifugo proxy: authz check: %w", err)
+		}
+		return allowed, nil
 
 	case strings.HasPrefix(channel, "user:"):
 		// User personal channel: only the user themselves can subscribe.

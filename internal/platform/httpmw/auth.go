@@ -120,7 +120,7 @@ func introspect(ctx context.Context, client *http.Client, url, token string) (*C
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url,
 		strings.NewReader("token="+token))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("introspect: build request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 

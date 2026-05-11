@@ -104,6 +104,9 @@ func (s *ServiceAccountTokenSource) Token(ctx context.Context) (string, error) {
 		return s.cache.value, nil
 	}
 
+	// Invalidate any stale cache before fetching so a previously-revoked token
+	// is never served if fetchToken fails and the caller retries.
+	s.cache = nil
 	token, expiry, err := s.fetchToken(ctx)
 	if err != nil {
 		return "", err

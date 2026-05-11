@@ -65,7 +65,11 @@ func (s *GroupExpirySweeper) deleteGroup(ctx context.Context, g *domain.Group) {
 	// Ephemeral groups don't write Keto tuples, but we clean up defensively.
 	members, err := s.groups.ListMembers(ctx, g.ID)
 	if err != nil {
-		s.logger.WarnContext(ctx, "group expiry: list members", "group_id", g.ID, "err", err)
+		// Abort: without the member list we can't clean up Keto relations, so
+		// deleting the group now would leave orphaned authorization tuples.
+		s.logger.ErrorContext(ctx, "group expiry: list members failed, skipping deletion",
+			"group_id", g.ID, "err", err)
+		return
 	}
 	for _, m := range members {
 		_ = s.authz.DeleteRelation(ctx, m.UserID.String(), "member", "Group:"+g.ID.String())
@@ -77,11 +81,11 @@ func (s *GroupExpirySweeper) deleteGroup(ctx context.Context, g *domain.Group) {
 		return
 	}
 
-	_ = s.publisher.Publish(ctx, []domain.DomainEvent{domain.GroupDeletedEvent{
+	_ = s.publisher.Publish(ctx, []domain.Event{domain.GroupDeletedEvent{
 		GroupID:     g.ID,
 		OrgID:       g.OrgID,
 		AppID:       g.AppID,
-		OccurredAt_: time.Now().UTC(),
+		At: time.Now().UTC(),
 	}})
 
 	s.logger.InfoContext(ctx, "expired group deleted", "group_id", g.ID, "org_id", g.OrgID)
